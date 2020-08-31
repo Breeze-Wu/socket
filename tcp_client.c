@@ -179,7 +179,6 @@ void sock_read(void)
 		
 		if(ret < 0)
 		{
-			//close(fd);
 			sock_status = 0;
 			printf("select err:%d\r\n",errno);
 			break;
@@ -189,7 +188,7 @@ void sock_read(void)
 		else
 			if(FD_ISSET(fd,&r_fd))
 			{
-				if((len = read(fd,(void *)recv_buf,100)) < 0)
+				if((len = read(fd,(void *)recv_buf,100)) <= 0)
 				{
 					//close(fd);
 					sock_status = 0;
@@ -199,63 +198,14 @@ void sock_read(void)
 				else
 					printf("len:%d,string:%s\r\n",len,recv_buf);
 			}
-
 	}
 }
 
-int main(int argc,char *argv[])
+void write_sock()
 {
-	//int fd = 0;
-	char *ip = NULL;
-	int port = 0,send_len = 0;
-	char *str = "hello world!";
-//	char read_buf[1024];
-
-//	fd = malloc(sizeof(int));
-	ip = argv[1];
-	port =atoi(argv[2]);
-	
-
-	if(Network_Connect(&fd,ip,port) == -1)
-	{
-		printf("connect error\r\n");
-		return 0;
-	}
-	sock_status = 1;
-	printf("connect success!\r\n");
-	if(fd != 0)
-	{
-	//	send_len = send(fd,(void *)str,strlen(str),0);
-		send_len = write(fd,str,strlen(str));
-		if(send_len < 0)
-		{
-			close(fd);
-			printf("write error errno is %d\r\n",errno);
-			return 0;
-		}
-	}
-	
-	//pthread ptr_read;
-	pthread_create(&ptr_read,NULL,sock_read,NULL);
-
-	#if 0
-	while(1)
-	{
-		if((len = read(fd,(void *)read_buf,1024)) < 0)
-		//if((len = recv(fd,(void *)read_buf,1024,0)) < 0)
-		{
-			printf("read error\r\n");
-			return 0;
-		}
-		else if(len > 0)
-			printf("read is :%s\r\n",read_buf);
-		else
-			continue;
-	}
-	#endif
-	
 	char buff[100];
-
+	int len = -1;
+	
 	while(1)
 	{
 		if(sock_status == 0)
@@ -264,7 +214,7 @@ int main(int argc,char *argv[])
 			sleep(1);
 			pthread_join(ptr_read,NULL);	//blocking recycle thread
 			close(fd);
-			return 0;
+			break;
 		}
 
 		printf("please input:\r\n");
@@ -280,13 +230,48 @@ int main(int argc,char *argv[])
 			sock_status = 0;
 		}
 
-		if((send_len = write(fd,buff,strlen(buff))) < 0)
+		if((len = write(fd,buff,strlen(buff))) < 0)
 	//	if((send_len = send(fd,buff,strlen(buff),0)) < 0)
 		{
 			printf("send err:%d\r\n",errno);
 			sock_status = 0;
 		}
 	}
+}
+
+int main(int argc,char *argv[])
+{
+	char *ip = NULL;
+	int port = 0,send_len = 0;
+	char *str = "hello world!";
+
+	ip = argv[1];
+	port =atoi(argv[2]);
 	
+
+	if(Network_Connect(&fd,ip,port) == -1)
+	{
+		printf("connect error\r\n");
+		return 0;
+	}
+	sock_status = 1;
+	printf("connect success!\r\n");
+
+	if(fd != 0)
+	{
+	//	send_len = send(fd,(void *)str,strlen(str),0);
+		send_len = write(fd,str,strlen(str));
+		if(send_len < 0)
+		{
+			close(fd);
+			printf("write error errno is %d\r\n",errno);
+			return 0;
+		}
+	}
+	
+	//pthread ptr_read;
+	pthread_create(&ptr_read,NULL,sock_read,NULL);
+	
+	write_sock();
 	return 0;
 }
